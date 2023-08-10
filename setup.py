@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='ssi_if_project',
+    name='DataPrep',
     version='0.1',
     author='calcuttj',
     description='if project',
