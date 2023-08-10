@@ -23,8 +23,6 @@ class BipartiteShowerFeatures(ShowerFeatures):
 
     indices = [node_labels[y[0]] != node_labels[y[1]] for y in edge_index.T]
 
-    print(edge_index.T)
-    print(np.where(indices))
     return GraphData(x = node_features,
                     edge_index = edge_index[:, indices],
                     edge_attr = edge_features[indices],
