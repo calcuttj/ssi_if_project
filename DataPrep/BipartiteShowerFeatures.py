@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import Dataset
 from torch_geometric.data import Data as GraphData
 from torch_geometric.data import Dataset as GraphDataset
+from iftool.gnn_challenge import ShowerFeatures
 
 class BipartiteShowerFeatures(ShowerFeatures):
 
