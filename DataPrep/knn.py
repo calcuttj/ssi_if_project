@@ -41,10 +41,14 @@ def findEdgeIndex(edge, nNodes):
     index = index + edge[0] + 1
   else:
     index = index + edge[0]
-  
   return index.item() - 1
 
-print(edge_index.size(dim=1))
+# example:
+
+x = torch.tensor([[-1., -1.], [-1., 1.], [1., -1.], [1., 1.]])
+batch = torch.tensor([0, 0, 0, 0])
+edge_index = knn_graph(x[:,0], k=1, batch=batch)
+print(edge_index)
 
 for i in range(edge_index.size(dim=1)):
   print(edge_index[1, i].item(), " to ", edge_index[0, i].item(), ": ", findEdgeIndex(edge_index[:, i], 4))
