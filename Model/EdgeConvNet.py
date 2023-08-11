@@ -45,7 +45,7 @@ class EdgeConvNet(torch.nn.Module):
                   dim=1)
   
     self.relu1(x)
-    x = global_mean_pool(x, data.batch)
+
     return F.sigmoid(self.end_layers(x))
 
 
