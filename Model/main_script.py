@@ -7,22 +7,12 @@ from torch_geometric.nn import GCNConv
 from torch_geometric.nn.pool import global_mean_pool
 import matplotlib.pyplot as plt
 from iftool.gnn_challenge import ShowerFeatures
-train_data = ShowerFeatures(file_path = datapath)
 from torch_geometric.loader import DataLoader as GraphDataLoader
 from torch_geometric.data import Data as GraphData
-train_loader = GraphDataLoader(train_data,
-                               shuffle     = True,
-                               num_workers = 4,
-                               batch_size  = 64
-                              )
+
 
 import h5py as h5
 import numpy as np
-datapath='if-graph-train.h5'
-
-# Open a file in 'r'ead mode.
-f=h5.File(datapath,mode='r',swmr=True)
-
 # List items in the file
 for key in f.keys():
     print('dataset',key,'... type',f[key].dtype,'... shape',f[key].shape)
@@ -110,7 +100,7 @@ class EdgeConvNet(torch.nn.Module):
 import h5py as h5
 import time, calendar
 
-def train(net, optimizer, loss_fn, nepochs=1, save=False, maxbatches=-1):
+def train(net, optimizer, loss_fn, train_loader, nepochs=1, save=False, maxbatches=-1):
   # check if a GPU is available. Otherwise run on CPU
   device = 'cpu'
   args_cuda = torch.cuda.is_available()
@@ -188,8 +178,15 @@ if __name__ = '__main__':
   
   parser = ap()
   parser.add_argument('--save', action='store_true')
+  parser.add_argument('-i', required=True)
   args = parser.parse_args()
 
+  train_data = ShowerFeatures(file_path=args.i)
+  train_loader = GraphDataLoader(train_data,
+                                 shuffle     = True,
+                                 num_workers = 4,
+                                 batch_size  = 64
+                                )
   net, optimizer, loss_fn = make_trainers()
 
-  train(net, optimizer, loss_fn, save=args.save)
+  train(net, optimizer, loss_fn, train_loader, save=args.save)
