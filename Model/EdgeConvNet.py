@@ -42,7 +42,14 @@ class EdgeConvNet(torch.nn.Module):
     #self.relu1 = nn.ReLU()
     self.edge_conv = EdgeConv(InnerNet(n_node_features, 64), aggr=aggr)
     self.edge_conv2 = EdgeConv(InnerNet(64 + n_node_features, 128), aggr=aggr)
+    #self.edge_conv3 = EdgeConv(InnerNet(128 + 64 + n_node_features, 256), aggr=aggr)
 
+    #node_layers = [
+    #    nn.Linear(256 + 128 + 64 + n_node_features, 512),
+    #    nn.BatchNorm1d(num_features=512),
+    #    nn.ReLU(),
+    #    nn.Linear(512, 1),
+    #]
     node_layers = [
         nn.Linear(128 + 64 + n_node_features, 256),
         nn.BatchNorm1d(num_features=256),
@@ -59,6 +66,12 @@ class EdgeConvNet(torch.nn.Module):
         nn.ReLU(),
         nn.Linear(256, 1),
     ]
+    #edge_layers = [
+    #    nn.Linear(256 + 128 + 64 + n_node_features, 512),
+    #    nn.BatchNorm1d(num_features=512),
+    #    nn.ReLU(),
+    #    nn.Linear(512, 1),
+    #]
     self.end_edge_layers = nn.Sequential(*edge_layers)    
 
 
@@ -67,9 +80,12 @@ class EdgeConvNet(torch.nn.Module):
                   dim=1) #output is shape [n_nodes, n_node_features + 64]
     x = torch.cat((self.edge_conv2(x, data.edge_index), x),
                   dim=1) #output is shape [n_nodes, n_node_feats + 64 + 128]
+    #x = torch.cat((self.edge_conv3(x, data.edge_index), x),
+    #              dim=1) #output is shape [n_nodes, n_node_feats + 64 + 128 + 256]
 
     #Branch 1: a MLP outputing in node space
     node_out = F.sigmoid(self.end_node_layers(x))
+    #node_out = None
 
     #Branch 2: a MLP outputing in edge space
     #first, mix into edge space
