@@ -42,7 +42,7 @@ def train(net, optimizer, loss_fn, train_loader, nepochs=1, save=False, maxbatch
       batch.to(device)
       pred_n, pred_e = net(batch)
       loss_e = loss_fn(pred_e, batch.edge_label.reshape(len(batch.edge_label), 1).float())
-      #loss_n = loss_fn(pred_n, batch.y.reshape(len(batch.y), 1).float())
+      loss_n = loss_fn(pred_n, batch.y.reshape(len(batch.y), 1).float())
 
       loss = loss_n + loss_e
       loss.backward()
@@ -55,7 +55,7 @@ def train(net, optimizer, loss_fn, train_loader, nepochs=1, save=False, maxbatch
         running_loss = 0.
       losses.append(theloss)
       edge_losses.append(loss_e.item())
-      #node_losses.append(loss_n.item())
+      node_losses.append(loss_n.item())
     epoch_losses.append(losses)
     epoch_node_losses.append(node_losses)
     epoch_edge_losses.append(edge_losses)
