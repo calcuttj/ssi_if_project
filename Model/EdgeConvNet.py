@@ -2,7 +2,7 @@ import torch.nn as nn
 from torch_geometric.nn import EdgeConv, global_mean_pool
 import torch.nn.functional as F
 
-class EdgeOutputer(torch.nn.Module):
+class NodeMixer(torch.nn.Module):
   def __init__(self, the_op=torch.sub):
     super().__init__()
     self.the_op = the_op
@@ -38,24 +38,40 @@ class EdgeConvNet(torch.nn.Module):
 
 
 
-    self.relu1 = nn.ReLU()
+    #self.relu1 = nn.ReLU()
     self.edge_conv = EdgeConv(InnerNet(n_node_features, 64), aggr=aggr)
-    layers = [
-        nn.Linear(64 + n_node_features, 128),
-        nn.ReLU(),
-        nn.Linear(128, 1),
+    self.edge_conv2 = EdgeConv(InnerNet(64 + n_node_features, 128), aggr=aggr)
 
+    node_layers = [
+        nn.Linear(128 + 64 + n_node_features, 256),
+        nn.BatchNorm1d(num_features=256),
+        nn.ReLU(),
+        nn.Linear(256, 1),
     ]
-    self.end_layers = nn.Sequential(*layers)
-    self.edge_outputer = EdgeOutputer()
+    self.end_node_layers = nn.Sequential(*node_layers)
+
+    self.node_mixer = NodeMixer()
+    edge_layers = [
+        nn.Linear(128 + 64 + n_node_features, 256),
+        nn.BatchNorm1d(num_features=256),
+        nn.ReLU(),
+        nn.Linear(256, 1),
+    ]
+    self.end_edge_layers = nn.Sequential(*edge_layers)    
 
   def forward(self, data):
     x = torch.cat((self.edge_conv(data.x, data.edge_index), data.x),
-                  dim=1)
+                  dim=1) #output is shape [n_nodes, n_node_features + 64]
+    x = torch.cat((self.edge_conv2(x, data.edge_index), x),
+                  dim=1) #output is shape [n_nodes, n_node_feats + 64 + 128]
 
-    x = self.relu1(x)
-    x = self.edge_outputer(x, data.edge_index)
-    return F.sigmoid(self.end_layers(x))
+    #Branch 1: a MLP outputing in node space
+    node_out = self.end_node_layers(x)
 
+    #Branch 2: a MLP outputing in edge space
+    #first, mix into edge space
+    edge_out = self.node_mixer(x, data.edge_index)
+    edge_out = self.end_edge_layers(edge_out)
+    return (node_out, edge_out)
 
 
