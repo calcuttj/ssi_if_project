@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 from torch_geometric.nn import EdgeConv, global_mean_pool
 import torch.nn.functional as F
 
@@ -50,6 +51,7 @@ class EdgeConvNet(torch.nn.Module):
     ]
     self.end_node_layers = nn.Sequential(*node_layers)
 
+    #self.node_mixer_op = InnerNet(128+64+n_node_features, 128+64+n_node_features)
     self.node_mixer = NodeMixer()
     edge_layers = [
         nn.Linear(128 + 64 + n_node_features, 256),
@@ -59,6 +61,7 @@ class EdgeConvNet(torch.nn.Module):
     ]
     self.end_edge_layers = nn.Sequential(*edge_layers)    
 
+
   def forward(self, data):
     x = torch.cat((self.edge_conv(data.x, data.edge_index), data.x),
                   dim=1) #output is shape [n_nodes, n_node_features + 64]
@@ -66,12 +69,13 @@ class EdgeConvNet(torch.nn.Module):
                   dim=1) #output is shape [n_nodes, n_node_feats + 64 + 128]
 
     #Branch 1: a MLP outputing in node space
-    node_out = self.end_node_layers(x)
+    node_out = F.sigmoid(self.end_node_layers(x))
 
     #Branch 2: a MLP outputing in edge space
     #first, mix into edge space
     edge_out = self.node_mixer(x, data.edge_index)
-    edge_out = self.end_edge_layers(edge_out)
+    edge_out = F.sigmoid(self.end_edge_layers(edge_out))
     return (node_out, edge_out)
+
 
 
