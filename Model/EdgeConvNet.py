@@ -1,4 +1,5 @@
 import torch.nn as nn
+import numpy as np
 import torch
 from torch_geometric.nn import EdgeConv, global_mean_pool
 import torch.nn.functional as F
@@ -10,6 +11,12 @@ class NodeMixer(torch.nn.Module):
   def forward(self, x, edge_index):
     return self.the_op(x[edge_index[0]], x[edge_index[1]])
 
+class CatAndMLP(torch.nn.Module):
+  def __init__(self, infeats, outfeats):
+    super().__init__()
+    self.net = InnerNet(infeats, outfeats)
+  def forward(self, x1, x2):
+    return self.net(torch.cat((x1, x2), dim=1))
 
 class InnerNet(torch.nn.Module):
   def __init__(self, n_node_features, layer_width):
@@ -31,61 +38,56 @@ class InnerNet(torch.nn.Module):
 
 
 class EdgeConvNet(torch.nn.Module):
-  def __init__(self, n_node_features=16, aggr='mean'):
+  def __init__(self, n_node_features=16, edge_convs=[64], mid_features=128, aggr='mean', do_mlp_op=False):
     super().__init__()
 
     assert_msg = 'aggr should be one of mean, max, or min'
     assert (aggr in ['mean', 'max', 'min']), assert_msg
 
-
-
-    #self.relu1 = nn.ReLU()
-    self.edge_conv = EdgeConv(InnerNet(n_node_features, 64), aggr=aggr)
-    self.edge_conv2 = EdgeConv(InnerNet(64 + n_node_features, 128), aggr=aggr)
+    #self.edge_conv = EdgeConv(InnerNet(n_node_features, 64), aggr=aggr)
+    #self.edge_conv2 = EdgeConv(InnerNet(64 + n_node_features, 128), aggr=aggr)
     #self.edge_conv3 = EdgeConv(InnerNet(128 + 64 + n_node_features, 256), aggr=aggr)
 
-    #node_layers = [
-    #    nn.Linear(256 + 128 + 64 + n_node_features, 512),
-    #    nn.BatchNorm1d(num_features=512),
-    #    nn.ReLU(),
-    #    nn.Linear(512, 1),
-    #]
+    edge_convs = np.array(edge_convs)
+    self.edge_convs = nn.ModuleList([
+      EdgeConv(InnerNet(n_node_features + sum(edge_convs[:i]), edge_convs[i]), aggr=aggr)
+      for i in range(len(edge_convs))
+    ])
+
     node_layers = [
-        nn.Linear(128 + 64 + n_node_features, 256),
-        nn.BatchNorm1d(num_features=256),
+        nn.Linear(sum(edge_convs) + n_node_features, mid_features),
+        nn.BatchNorm1d(num_features=mid_features),
         nn.ReLU(),
-        nn.Linear(256, 1),
+        nn.Linear(mid_features, 1),
     ]
     self.end_node_layers = nn.Sequential(*node_layers)
 
-    #self.node_mixer_op = InnerNet(128+64+n_node_features, 128+64+n_node_features)
-    self.node_mixer = NodeMixer()
+    
+    if do_mlp_op: 
+      self.node_mixer = NodeMixer(
+        the_op=CatAndMLP(sum(edge_convs) + n_node_features,
+                         sum(edge_convs) + n_node_features)
+      )
+    else:
+      self.node_mixer = NodeMixer()
+
     edge_layers = [
-        nn.Linear(128 + 64 + n_node_features, 256),
-        nn.BatchNorm1d(num_features=256),
+        nn.Linear(sum(edge_convs) + n_node_features, mid_features),
+        nn.BatchNorm1d(num_features=mid_features),
         nn.ReLU(),
-        nn.Linear(256, 1),
+        nn.Linear(mid_features, 1),
     ]
-    #edge_layers = [
-    #    nn.Linear(256 + 128 + 64 + n_node_features, 512),
-    #    nn.BatchNorm1d(num_features=512),
-    #    nn.ReLU(),
-    #    nn.Linear(512, 1),
-    #]
     self.end_edge_layers = nn.Sequential(*edge_layers)    
 
 
   def forward(self, data):
-    x = torch.cat((self.edge_conv(data.x, data.edge_index), data.x),
-                  dim=1) #output is shape [n_nodes, n_node_features + 64]
-    x = torch.cat((self.edge_conv2(x, data.edge_index), x),
-                  dim=1) #output is shape [n_nodes, n_node_feats + 64 + 128]
-    #x = torch.cat((self.edge_conv3(x, data.edge_index), x),
-    #              dim=1) #output is shape [n_nodes, n_node_feats + 64 + 128 + 256]
+
+    x = data.x
+    for l in self.edge_convs:
+      x = torch.cat((l(x, data.edge_index), x), dim=1)
 
     #Branch 1: a MLP outputing in node space
     node_out = F.sigmoid(self.end_node_layers(x))
-    #node_out = None
 
     #Branch 2: a MLP outputing in edge space
     #first, mix into edge space

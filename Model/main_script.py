@@ -82,7 +82,7 @@ def train(net, optimizer, loss_fn, train_loader, nepochs=1, save=False, maxbatch
 
 
 def make_trainers(args):
-  net = EdgeConvNet()
+  net = EdgeConvNet(edge_convs=args.edge_convs, mid_features=args.mid_feats, do_mlp_op=args.mlp_op)
   loss_fn = torch.nn.BCELoss(reduction='mean')
   optimizer = torch.optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
   return net, optimizer, loss_fn
@@ -96,6 +96,9 @@ if __name__ == '__main__':
   parser.add_argument('--test', action='store_true')
   parser.add_argument('--max', default=-1, type=int)
   parser.add_argument('--lr', default=0.01, type=float)
+  parser.add_argument('--edge_convs', default=[64, 128], type=int, nargs='+')
+  parser.add_argument('--mid_feats', default=256, type=int)
+  parser.add_argument('--mlp_op', action='store_true')
 
   args = parser.parse_args()
 
