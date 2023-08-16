@@ -28,7 +28,6 @@ def train(net, optimizer, loss_fn, train_loader, nepochs=1, save=False, maxbatch
   epoch_losses = []
   epoch_edge_losses = []
   epoch_node_losses = []
-  nepochs = 1
   net.train()
   for i in range(nepochs):
     print(f'EPOCH {i}')
@@ -109,4 +108,4 @@ if __name__ == '__main__':
   net, optimizer, loss_fn = make_trainers(args)
 
   if not args.test:
-    train(net, optimizer, loss_fn, train_loader, save=args.save, maxbatches=args.max)
+    train(net, optimizer, loss_fn, train_loader, save=args.save, maxbatches=args.max, nepochs=args.nepochs)
