@@ -19,8 +19,15 @@ from EdgeConvNet import EdgeConvNet
 def make_net(args):
   net = EdgeConvNet()
 
+
+  device = 'cpu'
+  args_cuda = torch.cuda.is_available()
+  if args_cuda: device = "cuda:0"
+  print('device : ',device)
+
   net.load_state_dict(
-    torch.load(args.pt)['model_state_dict']
+    torch.load(args.pt,
+    map_location=torch.device(device))['model_state_dict']
   )
   return net
 

@@ -82,10 +82,10 @@ def train(net, optimizer, loss_fn, train_loader, nepochs=1, save=False, maxbatch
   fout.close()
 
 
-def make_trainers():
+def make_trainers(args):
   net = EdgeConvNet()
   loss_fn = torch.nn.BCELoss(reduction='mean')
-  optimizer = torch.optim.Adam(net.parameters(), lr=0.01, weight_decay=5e-4)
+  optimizer = torch.optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
   return net, optimizer, loss_fn
 
 if __name__ == '__main__':
@@ -96,6 +96,7 @@ if __name__ == '__main__':
   parser.add_argument('--nepochs', type=int, default=1)
   parser.add_argument('--test', action='store_true')
   parser.add_argument('--max', default=-1, type=int)
+  parser.add_argument('--lr', default=0.01, type=float)
 
   args = parser.parse_args()
 
@@ -105,7 +106,7 @@ if __name__ == '__main__':
                                  num_workers = 4,
                                  batch_size  = 64
                                 )
-  net, optimizer, loss_fn = make_trainers()
+  net, optimizer, loss_fn = make_trainers(args)
 
   if not args.test:
     train(net, optimizer, loss_fn, train_loader, save=args.save, maxbatches=args.max)
