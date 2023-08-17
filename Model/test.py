@@ -17,7 +17,8 @@ from EdgeConvNet import EdgeConvNet
 
 
 def make_net(args):
-  net = EdgeConvNet()
+  #net = EdgeConvNet()
+  net = EdgeConvNet(edge_convs=args.edge_convs, mid_features=args.mid_feats, do_mlp_op=args.mlp_op)
 
 
   device = 'cpu'
@@ -36,6 +37,9 @@ if __name__ == '__main__':
   parser.add_argument('-i', required=True, type=str)
   parser.add_argument('--pt', required=True, type=str)
   parser.add_argument('--max', type=int, default=-1)
+  parser.add_argument('--edge_convs', default=[64, 128], type=int, nargs='+')
+  parser.add_argument('--mid_feats', default=256, type=int)
+  parser.add_argument('--mlp_op', action='store_true')
   args = parser.parse_args()
 
 
